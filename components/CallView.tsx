@@ -14,10 +14,12 @@ enum JoinStatus {
 
 const CallView = ({
   meetingId,
-  onMeetingLeave
+  onMeetingLeave,
+  beforeJoinCall
 }: {
   meetingId: string;
   onMeetingLeave: () => void;
+  beforeJoinCall: () => void;
 }) => {
   const [joinState, setJoinState] = useState(JoinStatus.JOINING);
   const { join, participants } = useMeeting({
@@ -32,6 +34,7 @@ const CallView = ({
   });
 
   const joinMeeting = () => {
+    beforeJoinCall();
     setJoinState(JoinStatus.JOINING);
     join();
   };

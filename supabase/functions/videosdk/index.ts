@@ -41,11 +41,7 @@ serve(async (req) => {
 
     let data: object | null = null;
     if (func === 'getMeetingId') {
-      data = await getMeetingId(
-        // supabaseClient,
-        // reqjson.topicId,
-        reqjson.authToken
-      );
+      data = await getMeetingId(reqjson.authToken);
     } else if (func === 'getAuthToken') data = getAuthToken();
 
     if (!data) throw new Error('invalid method');
@@ -63,20 +59,8 @@ serve(async (req) => {
   }
 });
 
-const getMeetingId = async (
-  // supabaseClient: any,
-  // topicId: string,
-  authToken: string
-) => {
+const getMeetingId = async (authToken: string) => {
   let meetingId: string;
-  // const { data, error } = await supabaseClient
-  //   .from('availablecalls')
-  //   .select('meeting_id')
-  //   .filter('topic', 'eq', topicId)
-  //   .limit(1);
-
-  // if (error) throw Error(error);
-  // if (data.length == 1) meetingId = data[0].meetingId;
 
   const res = await fetch(`https://api.videosdk.live/v2/rooms`, {
     method: 'POST',
@@ -86,7 +70,9 @@ const getMeetingId = async (
     },
     body: JSON.stringify({})
   });
-  meetingId = (await res.json()).roomId;
+  const resjson = await res.json();
+  meetingId = resjson.roomId;
+  console.log(resjson);
   return { meetingId };
 };
 
