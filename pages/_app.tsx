@@ -5,6 +5,7 @@ import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
 import { SessionContextProvider, Session } from '@supabase/auth-helpers-react';
 import { useState } from 'react';
 import { Database } from '@/lib/database.types';
+import dynamic from 'next/dynamic';
 
 function MyApp({
   Component,
@@ -27,5 +28,8 @@ function MyApp({
     </SessionContextProvider>
   );
 }
+// export default dynamic(() => Promise.resolve(MyApp), {
+//   ssr: false
+// });
 
 export default MyApp;
