@@ -1,11 +1,14 @@
-import { ChakraProvider } from '@chakra-ui/react';
+import '@/styles/globals.css';
+
+import { Box, ChakraProvider, Stack, StackDivider } from '@chakra-ui/react';
 import { AppProps } from 'next/app';
 
-import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
-import { SessionContextProvider, Session } from '@supabase/auth-helpers-react';
-import { useState } from 'react';
+import HeaderBar from '@/components/HeaderBar';
 import { Database } from '@/lib/database.types';
-import dynamic from 'next/dynamic';
+import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
+import { Session, SessionContextProvider } from '@supabase/auth-helpers-react';
+import { useState } from 'react';
+import { RouteGuard } from '@/components/RouteGard';
 
 function MyApp({
   Component,
@@ -23,13 +26,17 @@ function MyApp({
       initialSession={pageProps.initialSession}
     >
       <ChakraProvider>
-        <Component {...pageProps} />
+        {/* <RouteGuard> */}
+        <Stack h="100vh" w="100%" spacing={'0'} divider={<StackDivider />}>
+          <HeaderBar />
+          <Box h="100%">
+            {/* Parent component here to get authToken and check etc. */}
+            <Component {...pageProps} />
+          </Box>
+        </Stack>
+        {/* </RouteGuard> */}
       </ChakraProvider>
     </SessionContextProvider>
   );
 }
-// export default dynamic(() => Promise.resolve(MyApp), {
-//   ssr: false
-// });
-
 export default MyApp;

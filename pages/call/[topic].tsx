@@ -1,96 +1,105 @@
-import { useRouter } from 'next/router';
-import React, { useEffect, useState } from 'react';
-
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { Button, Text } from '@chakra-ui/react';
+import { useRouter } from 'next/router';
+import { useState } from 'react';
 
-let MEETING_SET = false;
-const CallPage = () => {
-  const supabase = useSupabaseClient();
-  const [meetingId, setMeetingId] = useState('');
+import { TopicType } from '@/components/AvailableTopics';
+import { Database } from '@/lib/database.types';
+import { sendJoinRequest } from '@/lib/notificationHelpers';
+import { getSessionDetails } from '@/lib/userAuthHelpers';
+import { getAuthToken, getMeetingId } from '@/lib/videoSdkHelpers';
+import {
+  Button,
+  Center,
+  HStack,
+  Spinner,
+  Text,
+  VStack
+} from '@chakra-ui/react';
+import { SupabaseClient } from '@supabase/supabase-js';
+import { NextPage } from 'next';
 
+interface ICallPage {
+  topicDetails: TopicType;
+}
+
+enum CallExecuteState {
+  IDLE,
+  STARTED,
+  ROOM_CREATED,
+  WAITING,
+  ACCEPTED
+}
+const CallPage: NextPage<ICallPage> = ({ topicDetails }) => {
+  const [executeStage, setExecuteStage] = useState(CallExecuteState.IDLE);
+
+  const supabase = useSupabaseClient<Database>();
   const router = useRouter();
-  const { topic } = router.query;
 
-  const sendNotification = async (
-    meetingId: string,
-    payloadRecv: (payload: any) => void
-  ) => {
-    const channel = supabase.channel('calls');
-    const userId = (await supabase.auth.getUser()).data.user?.id;
+  const executeCallProcess = async () => {
+    setExecuteStage(CallExecuteState.STARTED);
 
-    const { data: author_, error } = await supabase
-      .from('topicrequests')
-      .select('author')
-      .filter('id', 'eq', topic);
-    if (error) throw error;
-    const author = author_[0].author;
+    const authToken = await getAuthToken(supabase);
+    const meetingId = await getMeetingId(supabase, authToken);
+    setExecuteStage(CallExecuteState.ROOM_CREATED);
 
-    console.log('Sending message:', {
-      channel: 'calls',
-      type: 'broadcast',
-      event: author,
-      payload: { asker: userId, meetingId }
-    });
-    channel.subscribe(async (status) => {
-      if (status == 'SUBSCRIBED') {
-        const payload = { asker: userId as string, meetingId, topic: topic };
-        const response = await channel.send({
-          type: 'broadcast',
-          event: author,
-          payload
-        });
-
-        payloadRecv(payload);
-
-        console.log('Message sent:', response);
-      }
-    });
+    sendJoinRequest(supabase, topicDetails, meetingId, waitForCallAccept);
   };
 
-  const moveToCall = (payload: any) => {
-    router.push(`/call/${payload.topic}/${payload.meetingId}`);
+  const waitForCallAccept = async () => {
+    setExecuteStage(CallExecuteState.WAITING);
   };
 
-  useEffect(() => {
-    const getAuthAndMeetingId = async () => {
-      let { data: authData, error: authError } =
-        await supabase.functions.invoke('videosdk', {
-          body: { func: 'getAuthToken' }
-        });
-      console.log('getAuthToken', authData, authError);
-      if (authError) throw Error(authError);
-      localStorage.setItem('videosdk-auth-key', authData.token);
-      const { data, error } = await supabase.functions.invoke('videosdk', {
-        body: {
-          func: 'getMeetingId',
-          authToken: authData.token
-        }
-      });
-      console.log('getMeetingId', data, error);
-      if (error) throw Error(error);
-      setMeetingId(data.meetingId);
-    };
-    if (supabase && topic && !MEETING_SET) {
-      MEETING_SET = true;
-      // const _room = Array.isArray(room) ? room[0] : room ?? '';
-      // setMeetingId(_room);
-      // if (!room)
-      getAuthAndMeetingId();
+  const moveToCall = async (payload: any) => {
+    const userId = (await getSessionDetails(supabase))?.user.id;
+    router.push(
+      `/call/${payload.topic}/${payload.meetingId}`,
+      `/call/${payload.topic}/${userId}`
+    );
+  };
+
+  const getButtonTextByStage = () => {
+    switch (executeStage) {
+      case CallExecuteState.IDLE:
+        return 'Request Call';
+      case CallExecuteState.STARTED:
+        return 'Connecting';
+      case CallExecuteState.ROOM_CREATED:
+      case CallExecuteState.WAITING:
+        return 'Request sent, waiting...';
+      case CallExecuteState.ACCEPTED:
+        return 'Accepted';
     }
-  }, [supabase, topic]);
+  };
 
   return (
-    <>
-      {meetingId ? (
-        <Button onClick={() => sendNotification(meetingId, moveToCall)}>
-          Request Call
+    <Center h="100%" w="100%">
+      <VStack w="80%">
+        <Text fontSize={'2xl'}>{topicDetails.topic}</Text>
+        <Text>{topicDetails.description ?? 'Umm...no description :('} </Text>
+        <Button w="full" onClick={executeCallProcess}>
+          <HStack spacing={'4'}>
+            {executeStage > CallExecuteState.IDLE && <Spinner />}
+            <Text>{getButtonTextByStage()}</Text>
+          </HStack>
         </Button>
-      ) : (
-        <>Fetching details...</>
-      )}
-    </>
+      </VStack>
+    </Center>
   );
 };
+CallPage.getInitialProps = async (ctx) => {
+  const topic = ctx.query.topic;
 
+  const supabase = new SupabaseClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL as string,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+  );
+
+  const { data: topicDetails_, error } = await supabase
+    .from('topicrequests')
+    .select('*')
+    .filter('id', 'eq', topic);
+  if (error) throw error;
+  const topicDetails = topicDetails_[0] as TopicType;
+  return { topicDetails };
+};
 export default CallPage;
