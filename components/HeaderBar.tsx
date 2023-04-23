@@ -29,7 +29,7 @@ const HeaderBar = () => {
             </Button>
           </>
         ) : (
-          <Text fontFamily={'fantasy'}>AnyVoice</Text>
+          <Text fontFamily={'cursive'}>AnyVoice</Text>
         )}
       </HStack>
     </Center>
