@@ -8,8 +8,3 @@ const MeetingRoomComponent = dynamic(
 );
 
 export default MeetingRoomComponent;
-// const DynamicImportMeetingRoom = () => {
-//   return <div>DynamicImportMeetingRoom</div>;
-// };
-
-// export default DynamicImportMeetingRoom;

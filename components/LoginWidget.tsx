@@ -8,7 +8,7 @@ const getCurrentLocation = () => {
   if (env == 'development') {
     return 'http://localhost:3000';
   } else if (env == 'production') {
-    return 'https://college-audio-demo-hjh5ibhnj-enckrish.vercel.app/';
+    return 'https://college-audio-demo.vercel.app/';
   }
 };
 interface ILoginWidget {

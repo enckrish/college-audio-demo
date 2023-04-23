@@ -1,10 +1,10 @@
 import { useSupabaseClient } from '@supabase/auth-helpers-react';
 import { useRouter } from 'next/router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { TopicType } from '@/components/AvailableTopics';
 import { Database } from '@/lib/database.types';
-import { sendJoinRequest } from '@/lib/notificationHelpers';
+import { getTopicToChannel, sendJoinRequest } from '@/lib/notificationHelpers';
 import { getSessionDetails } from '@/lib/userAuthHelpers';
 import { getAuthToken, getMeetingId } from '@/lib/videoSdkHelpers';
 import {
@@ -17,6 +17,7 @@ import {
 } from '@chakra-ui/react';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { NextPage } from 'next';
+import { channel } from 'diagnostics_channel';
 
 interface ICallPage {
   topicDetails: TopicType;
@@ -42,7 +43,19 @@ const CallPage: NextPage<ICallPage> = ({ topicDetails }) => {
     const meetingId = await getMeetingId(supabase, authToken);
     setExecuteStage(CallExecuteState.ROOM_CREATED);
 
-    sendJoinRequest(supabase, topicDetails, meetingId, waitForCallAccept);
+    const toChannel = getTopicToChannel(supabase);
+    const userId = (await getSessionDetails(supabase))?.user.id;
+
+    sendJoinRequest(
+      toChannel,
+      userId as string,
+      topicDetails,
+      meetingId,
+      waitForCallAccept
+    );
+
+    // if (executeStage >= CallExecuteState.WAITING)
+    moveToCall({ topic: topicDetails.topic, meetingId });
   };
 
   const waitForCallAccept = async () => {
@@ -50,11 +63,7 @@ const CallPage: NextPage<ICallPage> = ({ topicDetails }) => {
   };
 
   const moveToCall = async (payload: any) => {
-    const userId = (await getSessionDetails(supabase))?.user.id;
-    router.push(
-      `/call/${payload.topic}/${payload.meetingId}`,
-      `/call/${payload.topic}/${userId}`
-    );
+    router.push(`/call/${payload.topic}/${payload.meetingId}`);
   };
 
   const getButtonTextByStage = () => {
@@ -71,14 +80,20 @@ const CallPage: NextPage<ICallPage> = ({ topicDetails }) => {
     }
   };
 
+  const getButtonDisabled = () => executeStage > CallExecuteState.IDLE;
+
   return (
     <Center h="100%" w="100%">
       <VStack w="80%">
         <Text fontSize={'2xl'}>{topicDetails.topic}</Text>
         <Text>{topicDetails.description ?? 'Umm...no description :('} </Text>
-        <Button w="full" onClick={executeCallProcess}>
+        <Button
+          w="full"
+          onClick={executeCallProcess}
+          isDisabled={getButtonDisabled()}
+        >
           <HStack spacing={'4'}>
-            {executeStage > CallExecuteState.IDLE && <Spinner />}
+            {getButtonDisabled() && <Spinner />}
             <Text>{getButtonTextByStage()}</Text>
           </HStack>
         </Button>
@@ -103,3 +118,5 @@ CallPage.getInitialProps = async (ctx) => {
   return { topicDetails };
 };
 export default CallPage;
+
+// TODO connections not happening

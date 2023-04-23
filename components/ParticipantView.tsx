@@ -1,3 +1,4 @@
+import { Center, HStack, Text, VStack } from '@chakra-ui/react';
 import { useParticipant } from '@videosdk.live/react-sdk';
 import { useEffect, useMemo, useRef } from 'react';
 import ReactPlayer from 'react-player';
@@ -34,32 +35,33 @@ function ParticipantView(props: any) {
   }, [micStream, micOn]);
 
   return (
-    <div>
-      <p>
-        Participant: {displayName} | Webcam: {webcamOn ? 'ON' : 'OFF'} | Mic:{' '}
-        {micOn ? 'ON' : 'OFF'}
-      </p>
-      <audio ref={micRef} autoPlay playsInline muted={isLocal} />
-      {webcamOn && (
-        <ReactPlayer
-          //
-          playsinline // very very imp prop
-          pip={false}
-          light={false}
-          controls={false}
-          muted={true}
-          playing={true}
-          //
-          url={videoStream}
-          //
-          height={'300px'}
-          width={'300px'}
-          onError={(err: any) => {
-            console.log(err, 'participant video error');
-          }}
-        />
-      )}
-    </div>
+    <Center h="100%" w="300px" bgColor={'black'} rounded="xl">
+      <VStack>
+        <Text textColor={'white'}>
+          Webcam: {webcamOn ? 'ON' : 'OFF'} | Mic: {micOn ? 'ON' : 'OFF'}
+        </Text>
+        <audio ref={micRef} autoPlay playsInline muted={isLocal} />
+        {webcamOn && (
+          <ReactPlayer
+            //
+            playsinline // very very imp prop
+            pip={false}
+            light={false}
+            controls={false}
+            muted={true}
+            playing={true}
+            //
+            url={videoStream}
+            //
+            height={'300px'}
+            width={'300px'}
+            onError={(err: any) => {
+              console.log(err, 'participant video error');
+            }}
+          />
+        )}
+      </VStack>
+    </Center>
   );
 }
 

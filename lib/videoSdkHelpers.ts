@@ -7,7 +7,7 @@ export const getAuthToken = async (supabase: SupabaseClient) => {
       body: { func: 'getAuthToken' }
     }
   );
-  console.log('getAuthToken', authData, authError);
+  // console.log('getAuthToken', authData, authError);
   if (authError) throw Error(authError);
 
   const authToken = authData.token;

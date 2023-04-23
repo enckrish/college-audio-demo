@@ -1,24 +1,13 @@
 import { useMeeting } from '@videosdk.live/react-sdk';
 import { useState } from 'react';
 import ParticipantView from './ParticipantView';
-import { Button, HStack } from '@chakra-ui/react';
+import { Box, Button, Center, HStack, Text, VStack } from '@chakra-ui/react';
 import { useRouter } from 'next/router';
+import OwnView from './OwnView';
 
 enum JoinState {
   JOINING,
   JOINED
-}
-
-function Controls() {
-  const { leave, toggleMic, toggleWebcam } = useMeeting();
-
-  return (
-    <HStack>
-      <Button onClick={() => leave()}>Leave</Button>
-      <Button onClick={() => toggleMic()}>toggleMic</Button>
-      <Button onClick={() => toggleWebcam()}>toggleWebcam</Button>
-    </HStack>
-  );
 }
 
 function MeetingView(props: any) {
@@ -43,25 +32,29 @@ function MeetingView(props: any) {
   };
 
   return (
-    <div className="container">
-      <h3>Meeting Id: {props.meetingId}</h3>
+    <Center h="100%">
       {joined == JoinState.JOINED ? (
-        <div>
-          <Controls />
+        <VStack h="100%" p="2" s>
           {/* For rendering all the participants in the meeting */}
-          {Array.from(participants.keys()).map((participantId) => (
-            <ParticipantView
-              participantId={participantId}
-              key={participantId}
-            />
-          ))}
-        </div>
+          {Array.from(participants.keys())
+            .slice(1)
+            .map((participantId) => (
+              <ParticipantView
+                participantId={participantId}
+                key={participantId}
+              />
+            ))}
+          <OwnView participantId={Array.from(participants.keys())[0]} />
+        </VStack>
       ) : joined && joined == 'JOINING' ? (
         <p>Joining the meeting...</p>
       ) : (
-        <Button onClick={joinMeeting}>Join</Button>
+        <VStack>
+          <Text fontSize={'xl'}>Ready to join?</Text>
+          <Button onClick={joinMeeting}>Join</Button>
+        </VStack>
       )}
-    </div>
+    </Center>
   );
 }
 

@@ -3,25 +3,43 @@
 
 import { NextPage } from 'next';
 import { useRouter } from 'next/router';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-import { useSupabaseClient } from '@supabase/auth-helpers-react';
-import { PostgrestSingleResponse, SupabaseClient } from '@supabase/supabase-js';
 import { Database } from '@/lib/database.types';
+import { useSupabaseClient } from '@supabase/auth-helpers-react';
+import {
+  PostgrestSingleResponse,
+  RealtimeChannel,
+  SupabaseClient
+} from '@supabase/supabase-js';
 
-import { Button, Text, useToast } from '@chakra-ui/react';
+import { Button, useToast } from '@chakra-ui/react';
 
 import AvailableTopics, { TopicType } from '@/components/AvailableTopics';
 import TopicCreator from '@/components/TopicCreator';
-import { getSessionDetails } from '@/lib/userAuthHelpers';
+import {
+  subscribeToCalls,
+  testListen,
+  testSubscribe
+} from '@/lib/notificationHelpers';
 import { getAuthToken } from '@/lib/videoSdkHelpers';
+import { getSessionDetails } from '@/lib/userAuthHelpers';
+import { getCallReceiveListener, setCallReceiveListener } from '@/lib/flagsLib';
+import Link from 'next/link';
 
-let SUBSCRIBED = false;
+const CALL_CHANNEL = 'calls';
+
 interface IHomeProps {
   availableTopics: PostgrestSingleResponse<TopicType[]>;
 }
+
+const AcceptCallBar = ({}) => {
+  return <Button>Accept Call</Button>;
+};
+
 const Home: NextPage<IHomeProps> = ({ availableTopics }) => {
   const supabase = useSupabaseClient<Database>();
+  const [callChannel, setCallChannel] = useState<RealtimeChannel>();
   const toast = useToast();
   const router = useRouter();
 
@@ -29,45 +47,69 @@ const Home: NextPage<IHomeProps> = ({ availableTopics }) => {
     if (supabase) getAuthToken(supabase);
   }, [supabase]);
 
-  useEffect(() => {
-    const acceptCall = (data: any) => {
+  type TPayload = {
+    event: string;
+    type: string;
+    payload: { asker: string; meetingId: string; topic: string };
+  };
+  const getButtonDescription = (payload: TPayload) => {
+    const data = payload.payload;
+
+    const moveToCall = async () => {
+      // const ackPayload = {
+      //   ack: true,
+      //   path: `/call/${data.topic}/${data.meetingId}`,
+      //   asker: data.asker
+      // };
+      // const channel = supabase.channel(CALL_CHANNEL).subscribe((status) => {
+      //   if (status == 'SUBSCRIBED') console.log('SUBSCRIBED');
+      //   if (status == 'CHANNEL_ERROR') throw Error('CHANNEL_ERROR');
+      // });
+      // console.log('Ack:', ackPayload);
+      // const res = await channel.send({
+      //   type: 'broadcast',
+      //   event: data.asker,
+      //   ackPayload
+      // });
+      // console.log('Message sent:', res);
+      toast.closeAll();
       router.push(`/call/${data.topic}/${data.meetingId}`);
-      // send acknowledgement
     };
-    const subscribeToCalls = async () => {
-      SUBSCRIBED = true;
-      const id = (await getSessionDetails(supabase))?.user.id;
-      const channel = supabase.channel('calls');
-      console.log('subscribing to:', {
-        channel: 'calls',
-        event: id as string
+    return <Button onClick={moveToCall}>Accept</Button>;
+  };
+  useEffect(() => {
+    if (
+      supabase
+      // && !getCallReceiveListener().enabled
+    ) {
+      // setCallReceiveListener({ enabled: true });
+      const channel = supabase.channel(CALL_CHANNEL).subscribe((status) => {
+        if (status == 'SUBSCRIBED') console.log('SUBSCRIBED');
+        if (status == 'CHANNEL_ERROR') throw Error('CHANNEL_ERROR');
       });
-      channel.on('broadcast', { event: id as string }, (payload) => {
-        const data = payload.payload;
-        toast({
-          title: 'Incoming call',
-          description: (
-            <Button
-              onClick={() => {
-                toast.closeAll();
-                acceptCall(data);
-              }}
-            >
-              Accept Call
-            </Button>
-            // <Link href={`/call/${data.topic}/${data.meetingId}`}>
-            //   <u>Go to call</u>
-            // </Link>
-          ),
-          status: 'info',
-          duration: 9000,
-          isClosable: true,
-          position: 'bottom-right'
-        });
-      });
-    };
-    if (supabase && !SUBSCRIBED) subscribeToCalls();
+
+      const setupBroadcast = async () => {
+        const userId = (await getSessionDetails(supabase))?.user.id;
+        subscribeToCalls(
+          channel,
+          userId as string,
+          router,
+          toast,
+          getButtonDescription
+        );
+      };
+
+      setCallChannel(channel);
+      setupBroadcast();
+    }
   }, [supabase]);
+
+  const acceptCall = (data: any) => {
+    router.push(`/call/${data.topic}/${data.meetingId}`);
+    // send acknowledgement
+  };
+
+  useEffect(() => {}, [supabase]);
 
   return (
     <>
@@ -77,6 +119,7 @@ const Home: NextPage<IHomeProps> = ({ availableTopics }) => {
   );
 };
 
+// Load all topics from database
 Home.getInitialProps = async (ctx) => {
   const supabase = new SupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL as string,
