@@ -34,7 +34,7 @@ function MeetingView(props: any) {
   return (
     <Center h="100%">
       {joined == JoinState.JOINED ? (
-        <VStack h="100%" p="2" s>
+        <VStack h="100%" p="2">
           {/* For rendering all the participants in the meeting */}
           {Array.from(participants.keys())
             .slice(1)
