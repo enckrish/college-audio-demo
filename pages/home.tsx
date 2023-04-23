@@ -13,19 +13,13 @@ import {
   SupabaseClient
 } from '@supabase/supabase-js';
 
-import { Button, useToast } from '@chakra-ui/react';
+import { Box, Button, useToast } from '@chakra-ui/react';
 
 import AvailableTopics, { TopicType } from '@/components/AvailableTopics';
 import TopicCreator from '@/components/TopicCreator';
-import {
-  subscribeToCalls,
-  testListen,
-  testSubscribe
-} from '@/lib/notificationHelpers';
-import { getAuthToken } from '@/lib/videoSdkHelpers';
+import { subscribeToCalls } from '@/lib/notificationHelpers';
 import { getSessionDetails } from '@/lib/userAuthHelpers';
-import { getCallReceiveListener, setCallReceiveListener } from '@/lib/flagsLib';
-import Link from 'next/link';
+import { getAuthToken } from '@/lib/videoSdkHelpers';
 
 const CALL_CHANNEL = 'calls';
 
@@ -56,22 +50,6 @@ const Home: NextPage<IHomeProps> = ({ availableTopics }) => {
     const data = payload.payload;
 
     const moveToCall = async () => {
-      // const ackPayload = {
-      //   ack: true,
-      //   path: `/call/${data.topic}/${data.meetingId}`,
-      //   asker: data.asker
-      // };
-      // const channel = supabase.channel(CALL_CHANNEL).subscribe((status) => {
-      //   if (status == 'SUBSCRIBED') console.log('SUBSCRIBED');
-      //   if (status == 'CHANNEL_ERROR') throw Error('CHANNEL_ERROR');
-      // });
-      // console.log('Ack:', ackPayload);
-      // const res = await channel.send({
-      //   type: 'broadcast',
-      //   event: data.asker,
-      //   ackPayload
-      // });
-      // console.log('Message sent:', res);
       toast.closeAll();
       router.push(`/call/${data.topic}/${data.meetingId}`);
     };
@@ -104,18 +82,13 @@ const Home: NextPage<IHomeProps> = ({ availableTopics }) => {
     }
   }, [supabase]);
 
-  const acceptCall = (data: any) => {
-    router.push(`/call/${data.topic}/${data.meetingId}`);
-    // send acknowledgement
-  };
-
   useEffect(() => {}, [supabase]);
 
   return (
-    <>
+    <Box>
       <TopicCreator />
       <AvailableTopics availableTopics={availableTopics} />
-    </>
+    </Box>
   );
 };
 

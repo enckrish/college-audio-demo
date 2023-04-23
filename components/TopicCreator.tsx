@@ -25,7 +25,10 @@ const TopicCreator = () => {
 
   const submitRequest = async (evt: React.FormEvent<HTMLFormElement>) => {
     evt.preventDefault();
-    const res = await supabase.from('topicrequests').insert([{ topic }]);
+    if (topic.length > 10) {
+      const res = await supabase.from('topicrequests').insert([{ topic }]);
+    }
+    setTopic('');
   };
   return (
     <Box
@@ -42,7 +45,7 @@ const TopicCreator = () => {
           <FormHelperText mb="2">
             {'Enter the topic to talk about'}
           </FormHelperText>
-          <Input type="text" value={topic ?? ''} onChange={handleInputChange} />
+          <Input type="text" value={topic} onChange={handleInputChange} />
           {isTopicValidUI() ? (
             <></>
           ) : (
